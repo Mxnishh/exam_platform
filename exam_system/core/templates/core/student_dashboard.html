@@ -1,0 +1,50 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">Student Dashboard</h2>
+
+<div class="row">
+
+<!-- Available Exams -->
+<div class="col-md-4">
+<div class="card shadow-sm p-4 text-center border-0">
+<i class="bi bi-journal-text fs-1 text-primary"></i>
+<h6 class="text-muted mt-2">Available Exams</h6>
+<h2 class="text-primary">{{ available_exams }}</h2>
+</div>
+</div>
+
+<!-- Completed Exams -->
+<div class="col-md-4">
+<div class="card shadow-sm p-4 text-center border-0">
+<i class="bi bi-check-circle fs-1 text-success"></i>
+<h6 class="text-muted mt-2">Completed Exams</h6>
+<h2 class="text-success">{{ completed_exams }}</h2>
+</div>
+</div>
+
+<!-- Total Exams -->
+<div class="col-md-4">
+<div class="card shadow-sm p-4 text-center border-0">
+<i class="bi bi-collection fs-1 text-dark"></i>
+<h6 class="text-muted mt-2">Total Exams</h6>
+<h2 class="text-dark">{{ total_exams }}</h2>
+</div>
+</div>
+
+</div>
+
+<div class="mt-4">
+
+<a href="{% url 'exam_list' %}" class="btn btn-primary me-2">
+<i class="bi bi-play-circle"></i> View Available Exams
+</a>
+
+<a href="{% url 'my_results' %}" class="btn btn-success">
+<i class="bi bi-bar-chart"></i> My Results
+</a>
+
+</div>
+
+{% endblock %}

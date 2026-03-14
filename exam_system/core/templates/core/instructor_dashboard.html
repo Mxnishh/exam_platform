@@ -1,0 +1,165 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">Instructor Dashboard</h2>
+
+<div class="card shadow-sm p-3">
+
+<table class="table table-hover align-middle">
+
+<thead class="table-dark">
+<tr>
+<th>Exam</th>
+<th>Status</th>
+<th>Attempts</th>
+<th>Average Score</th>
+<th>Highest Score</th>
+<th>Lowest Score</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for data in exam_data %}
+
+<tr>
+
+<td><strong>{{ data.exam.title }}</strong></td>
+
+<td>
+{% if data.status == "Draft" %}
+<span class="badge bg-warning text-dark">Draft</span>
+{% else %}
+<span class="badge bg-success">Attempted</span>
+{% endif %}
+</td>
+
+<td>
+<span class="badge bg-primary">
+{{ data.stats.total_attempts|default:0 }}
+</span>
+</td>
+
+<td>{{ data.stats.avg_score|default:"-" }}</td>
+
+<td>{{ data.stats.highest_score|default:"-" }}</td>
+
+<td>{{ data.stats.lowest_score|default:"-" }}</td>
+
+<td>
+
+{% if not data.has_submissions %}
+<a href="{% url 'add_question' data.exam.id %}" class="btn btn-sm btn-primary">
+Add Questions
+</a>
+{% endif %}
+
+<a href="{% url 'exam_submissions' data.exam.id %}" class="btn btn-sm btn-success">
+View Submissions
+</a>
+
+<a href="{% url 'edit_exam' data.exam.id %}" class="btn btn-sm btn-warning">
+Edit
+</a>
+
+<a href="{% url 'delete_exam' data.exam.id %}" class="btn btn-sm btn-danger">
+Delete
+</a>
+
+<a href="{% url 'export_results' data.exam.id %}"
+   class="btn btn-sm btn-info">
+⬇ Export CSV
+</a>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+<!-- Create Exam Button -->
+<div class="mt-4">
+<a href="{% url 'create_exam' %}" class="btn btn-primary">
+Create New Exam
+</a>
+</div>
+
+
+<!-- Score Charts Section -->
+{% for data in exam_data %}
+
+{% if data.has_submissions %}
+
+<div class="card shadow-sm p-4 mt-4">
+
+<h5 class="mb-3">{{ data.exam.title }} - Score Distribution</h5>
+
+<canvas id="chart{{ forloop.counter }}"></canvas>
+
+</div>
+
+<script>
+
+var scores = JSON.parse('{{ data.scores|safe }}');
+var ctx = document.getElementById("chart{{ forloop.counter }}");
+
+// frequency buckets
+var buckets = {
+    "0-2": 0,
+    "3-5": 0,
+    "6-8": 0,
+    "9-10": 0
+};
+
+scores.forEach(function(score){
+
+    if(score <= 2) buckets["0-2"]++;
+    else if(score <= 5) buckets["3-5"]++;
+    else if(score <= 8) buckets["6-8"]++;
+    else buckets["9-10"]++;
+
+});
+
+new Chart(ctx, {
+
+type: 'bar',
+
+data: {
+labels: Object.keys(buckets),
+datasets: [{
+label: "Number of Students",
+data: Object.values(buckets),
+backgroundColor: 'rgba(54,162,235,0.7)',
+borderRadius: 6
+}]
+},
+
+options: {
+plugins: {
+legend: { display: false }
+},
+scales: {
+y: {
+beginAtZero: true,
+ticks: { stepSize: 1 }
+}
+}
+}
+
+});
+
+</script>
+
+{% endif %}
+
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">Edit Exam</h2>
+
+<div class="card shadow-sm p-4">
+
+<form method="post">
+{% csrf_token %}
+
+<div class="mb-3">
+<label class="form-label">Title</label>
+{{ form.title }}
+</div>
+
+<div class="mb-3">
+<label class="form-label">Description</label>
+{{ form.description }}
+</div>
+
+<div class="mb-3">
+<label class="form-label">Duration (minutes)</label>
+{{ form.duration_minutes }}
+</div>
+
+<button type="submit" class="btn btn-warning">
+Update Exam
+</button>
+
+<a href="{% url 'instructor_dashboard' %}" class="btn btn-secondary">
+Cancel
+</a>
+
+</form>
+
+</div>
+
+{% endblock %}
+</html>

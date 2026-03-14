@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">Edit Question</h2>
+
+<div class="card shadow-sm p-4">
+
+<form method="post">
+{% csrf_token %}
+
+<div class="mb-3">
+<label class="form-label">Question</label>
+<input type="text" name="question" class="form-control" value="{{ question.text }}">
+</div>
+
+<button type="submit" class="btn btn-primary">
+Update Question
+</button>
+
+<a href="{% url 'add_question' question.exam.id %}" class="btn btn-secondary">
+Cancel
+</a>
+
+</form>
+
+</div>
+
+{% endblock %}

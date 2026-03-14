@@ -1,0 +1,59 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">Available Exams</h2>
+
+<div class="row">
+
+{% for data in exam_data %}
+
+<div class="col-md-4 mb-4">
+
+<div class="card shadow-sm h-100">
+
+<div class="card-body">
+
+<h5 class="card-title">{{ data.exam.title }}</h5>
+
+<p class="card-text">
+{{ data.exam.description }}
+</p>
+
+<p>
+<strong>Duration:</strong> {{ data.exam.duration_minutes }} minutes
+</p>
+
+{% if data.submission and data.submission.is_submitted %}
+
+<span class="badge bg-success mb-3">Completed</span>
+
+<br>
+
+<a href="{% url 'exam_result' data.submission.id %}" class="btn btn-success">
+View Result
+</a>
+
+{% else %}
+
+<span class="badge bg-primary mb-3">Available</span>
+
+<br>
+
+<a href="{% url 'exam_instructions' data.exam.id %}" class="btn btn-primary">
+Start Exam
+</a>
+
+{% endif %}
+
+</div>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% endblock %}

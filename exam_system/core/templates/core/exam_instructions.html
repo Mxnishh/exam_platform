@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">{{ exam.title }} - Instructions</h2>
+
+<div class="card shadow-sm p-4">
+
+<p><strong>Duration:</strong> {{ exam.duration_minutes }} minutes</p>
+
+<ul>
+<li>Do not refresh the page during the exam.</li>
+<li>Switching tabs multiple times may auto-submit the exam.</li>
+<li>The exam will auto-submit when time expires.</li>
+<li>Answer all questions carefully before submitting.</li>
+</ul>
+
+<a href="{% url 'start_exam' exam.id %}" class="btn btn-primary">
+Start Exam
+</a>
+
+<a href="{% url 'exam_list' %}" class="btn btn-secondary">
+Back
+</a>
+
+</div>
+
+{% endblock %}

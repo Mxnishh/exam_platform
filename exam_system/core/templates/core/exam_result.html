@@ -1,0 +1,109 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">Exam Result</h2>
+
+<div class="card shadow-sm p-4 mb-4">
+
+<h4 class="mb-3">{{ submission.exam.title }}</h4>
+
+<p>
+<strong>Student:</strong> {{ submission.student.username }}
+</p>
+
+<p>
+<strong>Score:</strong>
+<span class="badge bg-primary fs-6">
+{{ submission.total_score }} / {{ total_marks }}
+</span>
+</p>
+
+<p>
+<strong>Percentage:</strong>
+<span class="badge bg-info fs-6">
+{{ percentage }}%
+</span>
+</p>
+
+<p>
+<strong>Submitted At:</strong>
+{{ submission.submitted_at|date:"M d, Y H:i" }}
+</p>
+
+</div>
+
+<h4 class="mb-3">Answer Summary</h4>
+
+<div class="card shadow-sm p-3">
+
+<table class="table table-striped">
+
+<thead class="table-dark">
+<tr>
+<th>Question</th>
+<th>Your Answer</th>
+<th>Correct Answer</th>
+<th>Result</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for answer in submission.answers.all %}
+
+<tr>
+
+<td>{{ answer.question.text }}</td>
+
+<td>{{ answer.selected_option.text }}</td>
+
+<td>
+{% for option in answer.question.options.all %}
+{% if option.is_correct %}
+{{ option.text }}
+{% endif %}
+{% endfor %}
+</td>
+
+<td>
+
+{% if answer.selected_option.is_correct %}
+<span class="badge bg-success">Correct</span>
+{% else %}
+<span class="badge bg-danger">Wrong</span>
+{% endif %}
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+<div class="mt-4">
+
+{% if user.role == "STUDENT" %}
+<a href="{% url 'exam_list' %}" class="btn btn-primary">
+Back to Exams
+</a>
+
+<a href="{% url 'my_results' %}" class="btn btn-secondary">
+My Results
+</a>
+{% endif %}
+
+{% if user.role == "INSTRUCTOR" %}
+<a href="{% url 'instructor_dashboard' %}" class="btn btn-primary">
+Back to Dashboard
+</a>
+{% endif %}
+
+</div>
+
+{% endblock %}

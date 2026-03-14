@@ -1,0 +1,78 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">{{ exam.title }} - Submissions</h2>
+
+<div class="card shadow-sm p-3">
+
+<table class="table table-hover">
+
+<thead class="table-dark">
+<tr>
+<th>Student</th>
+<th>Score</th>
+<th>Submitted At</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for submission in submissions %}
+
+<tr>
+
+<td>{{ submission.student.username }}</td>
+
+<td>
+<span class="badge bg-primary">
+{{ submission.total_score }}
+</span>
+</td>
+
+<td>
+{% if submission.submitted_at %}
+{{ submission.submitted_at|date:"M d, Y H:i" }}
+{% else %}
+<span class="text-muted">Not submitted</span>
+{% endif %}
+</td>
+
+<td>
+
+<a href="{% url 'exam_result' submission.id %}" class="btn btn-sm btn-success">
+View Result
+</a>
+
+<a href="{% url 'reset_attempt' submission.id %}" class="btn btn-sm btn-danger">
+Reset Attempt
+</a>
+
+</td>
+
+</tr>
+
+{% empty %}
+
+<tr>
+<td colspan="4" class="text-center">No submissions yet.</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+<div class="mt-4">
+
+<a href="{% url 'instructor_dashboard' %}" class="btn btn-secondary">
+Back to Dashboard
+</a>
+
+</div>
+
+{% endblock %}

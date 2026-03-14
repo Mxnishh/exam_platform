@@ -1,0 +1,107 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+
+<h2 class="mb-3">{{ submission.exam.title }}</h2>
+<div id="exam-data"
+     data-remaining="{{ remaining_seconds }}"
+     data-total="{{ questions|length }}"
+     data-exam="{{ submission.exam.id }}">
+</div>
+
+<div class="alert alert-info">
+<strong>Time Remaining:</strong> <span id="timer"></span>
+</div>
+
+<!-- Progress Bar -->
+<div class="mb-4">
+<label class="form-label"><strong>Progress</strong></label>
+
+<div class="progress">
+<div id="progressBar" class="progress-bar bg-success" role="progressbar" style="width:0%">
+0%
+</div>
+</div>
+</div>
+
+<div class="mb-3 d-flex gap-2">
+
+<span class="badge bg-success">
+Answered: <span id="answeredCount">0</span>
+</span>
+
+<span class="badge bg-secondary">
+Unanswered: <span id="unansweredCount">{{ questions|length }}</span>
+</span>
+
+<span class="badge bg-warning text-dark">
+Flagged: <span id="flaggedCount">0</span>
+</span>
+
+</div>
+
+<!-- Question Navigator -->
+<div class="mb-4">
+<label class="form-label"><strong>Question Navigator</strong></label>
+
+<div id="navigator" class="d-flex flex-wrap gap-2">
+
+{% for question in questions %}
+<a href="#question{{ forloop.counter }}"
+class="btn btn-sm btn-outline-secondary nav-btn"
+id="nav{{ forloop.counter }}">
+{{ forloop.counter }}
+</a>
+{% endfor %}
+
+</div>
+</div>
+
+<form method="post">
+{% csrf_token %}
+
+{% for question in questions %}
+
+<div class="card shadow-sm p-3 mb-3 question-card" id="question{{ forloop.counter }}">
+
+<p><strong>Question {{ forloop.counter }}:</strong> {{ question.text }}</p>
+
+{% for option in question.shuffled_options %}
+
+div class="form-check">
+<input class="form-check-input"
+type="radio"
+name="question_{{ question.id }}"
+value="{{ option.id }}">
+<label class="form-check-label">
+{{ option.text }}
+</label>
+</div>
+
+{% endfor %}
+
+<button type="button"
+class="btn btn-sm btn-warning mt-2 flag-btn"
+data-question="{{ forloop.counter }}">
+Flag Question
+</button>
+
+<div class="mt-3 d-flex justify-content-between">
+<button type="button" class="btn btn-secondary prev-btn">Previous</button>
+<button type="button" class="btn btn-primary next-btn">Next</button>
+</div>
+
+</div>
+
+{% endfor %}
+
+<button type="submit" class="btn btn-danger" onclick="return confirmSubmit()">
+Submit Exam
+</button>
+
+</form>
+
+<script src="{% static 'js/exam.js' %}"></script>
+
+{% endblock %}
