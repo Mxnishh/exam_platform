@@ -29,6 +29,7 @@ remainingTime--;
 
 }
 
+updateTimer();
 setInterval(updateTimer,1000);
 
 /* ================= DOM ELEMENTS ================= */

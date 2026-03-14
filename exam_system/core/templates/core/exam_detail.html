@@ -10,6 +10,12 @@
      data-exam="{{ submission.exam.id }}">
 </div>
 
+<div id="exam-data"
+     data-remaining="{{ remaining_seconds }}"
+     data-total="{{ questions|length }}"
+     data-exam="{{ submission.exam.id }}">
+</div>
+
 <div class="alert alert-info">
 <strong>Time Remaining:</strong> <span id="timer"></span>
 </div>

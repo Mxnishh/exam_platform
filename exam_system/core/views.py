@@ -265,7 +265,7 @@ def add_question(request, exam_id):
 
     exam = Exam.objects.get(id=exam_id)
 
-     # 🔒 Prevent adding questions if students already attempted the exam
+    # 🔒 Prevent adding questions if students already attempted the exam
     submissions = Submission.objects.filter(exam=exam)
 
     if submissions.exists():
@@ -281,24 +281,31 @@ def add_question(request, exam_id):
 
         correct_option = request.POST.get("correct_option")
 
+        # Create question
         question = Question.objects.create(
             exam=exam,
             text=question_text
         )
 
+        # Create options
         Option.objects.create(question=question, text=option1, is_correct=(correct_option=="1"))
         Option.objects.create(question=question, text=option2, is_correct=(correct_option=="2"))
         Option.objects.create(question=question, text=option3, is_correct=(correct_option=="3"))
         Option.objects.create(question=question, text=option4, is_correct=(correct_option=="4"))
+
+        # ✅ Update exam status after first question is added
+        if exam.questions.exists():
+            exam.status = "Published"
+            exam.save()
 
         return redirect("add_question", exam_id=exam.id)
 
     questions = Question.objects.filter(exam=exam)
 
     return render(request, "core/add_question.html", {
-    "exam": exam,
-    "questions": questions
-})
+        "exam": exam,
+        "questions": questions
+    })
 
 @login_required
 @instructor_required
