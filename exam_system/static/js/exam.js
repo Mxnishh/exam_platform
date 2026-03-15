@@ -4,38 +4,38 @@ document.addEventListener("DOMContentLoaded", function(){
 
 const examData = document.getElementById("exam-data");
 
+if(!examData){
+    console.error("Exam data element not found");
+    return;
+}
+
 const remainingTime = Number(examData.dataset.remaining);
 const totalQuestions = Number(examData.dataset.total);
 const examId = examData.dataset.exam;
 
-/* ================= TIMER (REFRESH PROOF) ================= */
+/* ================= TIMER ================= */
 
 const timerDisplay = document.getElementById("timer");
 const form = document.querySelector("form");
 
-const examKeyTimer = "exam_timer_" + examId;
-
-let endTime = localStorage.getItem(examKeyTimer);
-
-if(!endTime){
-    endTime = Date.now() + remainingTime * 1000;
-    localStorage.setItem(examKeyTimer, endTime);
-}
+let endTime = Date.now() + (remainingTime * 1000);
 
 function updateTimer(){
 
-    let timeLeft = Math.floor((endTime - Date.now()) / 1000);
+    const now = Date.now();
+    const timeLeft = Math.floor((endTime - now) / 1000);
 
     if(timeLeft <= 0){
         form.submit();
         return;
     }
 
-    let minutes = Math.floor(timeLeft / 60);
-    let seconds = timeLeft % 60;
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
 
     timerDisplay.textContent =
         minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+
 }
 
 updateTimer();

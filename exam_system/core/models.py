@@ -17,6 +17,7 @@ class User(AbstractUser):
 
 
 class Exam(models.Model):
+
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
 
@@ -28,8 +29,12 @@ class Exam(models.Model):
 
     duration_minutes = models.IntegerField()
 
+    # NEW FIELDS
+    start_time = models.DateTimeField(null=True, blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     def __str__(self):
         return self.title
 

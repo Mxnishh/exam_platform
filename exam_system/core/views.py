@@ -81,19 +81,30 @@ def exam_detail(request, submission_id):
         return redirect('exam_list')
 
     submission = get_object_or_404(Submission, id=submission_id)
+    exam = submission.exam
+
+    now = timezone.now()
+
+    # Prevent early access
+    if exam.start_time and now < exam.start_time:
+        return redirect('exam_list')
+
+    # Prevent late access
+    if exam.end_time and now > exam.end_time:
+        return redirect('exam_list')
 
     # Randomize questions
-    questions = list(submission.exam.questions.all())
+    questions = list(exam.questions.all())
     random.shuffle(questions)
 
-    # Randomize options for each question
+    # Randomize options
     for question in questions:
         options = list(question.options.all())
         random.shuffle(options)
         question.shuffled_options = options
 
-    # Calculate remaining time
-    end_time = submission.start_time + timedelta(minutes=submission.exam.duration_minutes)
+    # Timer logic
+    end_time = submission.start_time + timedelta(minutes=exam.duration_minutes)
     remaining_seconds = int((end_time - timezone.now()).total_seconds())
 
     if remaining_seconds <= 0:
@@ -115,7 +126,6 @@ def exam_detail(request, submission_id):
             selected_option_id = request.POST.get(f"question_{question.id}")
 
             if selected_option_id:
-
                 selected_option = Option.objects.get(id=selected_option_id)
 
                 Answer.objects.create(
@@ -125,7 +135,6 @@ def exam_detail(request, submission_id):
                 )
 
         submission.calculate_score()
-
         submission.end_time = timezone.now()
         submission.save()
 
@@ -257,7 +266,9 @@ def create_exam(request):
     else:
         form = ExamForm()
 
-    return render(request, "core/create_exam.html", {"form": form})
+    return render(request, "core/create_exam.html", {
+        "form": form
+    })
 
 @login_required
 @instructor_required

@@ -4,11 +4,6 @@
 {% block content %}
 
 <h2 class="mb-3">{{ submission.exam.title }}</h2>
-<div id="exam-data"
-     data-remaining="{{ remaining_seconds }}"
-     data-total="{{ questions|length }}"
-     data-exam="{{ submission.exam.id }}">
-</div>
 
 <div id="exam-data"
      data-remaining="{{ remaining_seconds }}"
@@ -53,8 +48,13 @@ Flagged: <span id="flaggedCount">0</span>
 
 <div id="navigator" class="d-flex flex-wrap gap-2">
 
-{% for question in questions %}
-<a href="#question{{ forloop.counter }}"
+<button type="button"
+class="btn btn-sm btn-outline-secondary nav-btn"
+id="nav{{ forloop.counter }}"
+data-question="{{ forloop.counter }}">
+{{ forloop.counter }}
+</button>
+
 class="btn btn-sm btn-outline-secondary nav-btn"
 id="nav{{ forloop.counter }}">
 {{ forloop.counter }}
@@ -103,7 +103,7 @@ Flag Question
 
 {% endfor %}
 
-<button type="submit" class="btn btn-danger" onclick="return confirmSubmit()">
+<button type="submit" class="btn btn-danger">
 Submit Exam
 </button>
 
