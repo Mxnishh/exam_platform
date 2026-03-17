@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import dj_database_url
+from django.contrib.auth import get_user_model
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -122,3 +123,8 @@ LOGIN_REDIRECT_URL = "/home/"
 LOGOUT_REDIRECT_URL = "/login/"
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+User = get_user_model()
+
+if not User.objects.filter(username="admin").exists():
+    User.objects.create_superuser("admin", "admin@gmail.com", "admin123")
