@@ -5,12 +5,14 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         User = get_user_model()
 
-        if not User.objects.filter(username="admin").exists():
-            User.objects.create_superuser(
-                username="admin",
-                email="admin@gmail.com",
-                password="admin123"
-            )
+        user, created = User.objects.get_or_create(username="admin")
+
+        user.set_password("admin123")  # 🔥 force reset password
+        user.is_superuser = True
+        user.is_staff = True
+        user.save()
+
+        if created:
             self.stdout.write("Superuser created")
         else:
-            self.stdout.write("Superuser already exists")
+            self.stdout.write("Superuser updated (password reset)")
