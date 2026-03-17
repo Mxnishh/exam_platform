@@ -48,6 +48,8 @@ Flagged: <span id="flaggedCount">0</span>
 
 <div id="navigator" class="d-flex flex-wrap gap-2">
 
+{% for question in questions %}
+
 <button type="button"
 class="btn btn-sm btn-outline-secondary nav-btn"
 id="nav{{ forloop.counter }}"
@@ -55,10 +57,6 @@ data-question="{{ forloop.counter }}">
 {{ forloop.counter }}
 </button>
 
-class="btn btn-sm btn-outline-secondary nav-btn"
-id="nav{{ forloop.counter }}">
-{{ forloop.counter }}
-</a>
 {% endfor %}
 
 </div>
@@ -69,21 +67,22 @@ id="nav{{ forloop.counter }}">
 
 {% for question in questions %}
 
-<div class="card shadow-sm p-3 mb-3 question-card" id="question{{ forloop.counter }}">
+<div class="card shadow-sm p-3 mb-3 question-card"
+id="question{{ forloop.counter }}">
 
 <p><strong>Question {{ forloop.counter }}:</strong> {{ question.text }}</p>
 
 {% for option in question.shuffled_options %}
 
 <div class="form-check">
-    <input class="form-check-input"
-        type="radio"
-        name="question_{{ question.id }}"
-        value="{{ option.id }}">
+<input class="form-check-input"
+       type="radio"
+       name="question_{{ question.id }}"
+       value="{{ option.id }}">
 
-    <label class="form-check-label">
-        {{ option.text }}
-    </label>
+<label class="form-check-label">
+{{ option.text }}
+</label>
 </div>
 
 {% endfor %}
@@ -95,8 +94,13 @@ Flag Question
 </button>
 
 <div class="mt-3 d-flex justify-content-between">
-<button type="button" class="btn btn-secondary prev-btn">Previous</button>
-<button type="button" class="btn btn-primary next-btn">Next</button>
+<button type="button" class="btn btn-secondary prev-btn">
+Previous
+</button>
+
+<button type="button" class="btn btn-primary next-btn">
+Next
+</button>
 </div>
 
 </div>

@@ -38,86 +38,79 @@ def exam_list(request):
         "exam_data": exam_data
     })
 
-
 @login_required
 def start_exam(request, exam_id):
 
-    if request.user.role != "STUDENT":
-        return redirect('exam_list')
+    if request.user.role.upper() != "STUDENT":
+        return redirect("exam_list")
 
     exam = get_object_or_404(Exam, id=exam_id)
 
-    # Check if ANY submission exists (submitted or not)
     existing_submission = Submission.objects.filter(
         student=request.user,
         exam=exam
-    ).order_by('-start_time').first()
+    ).first()
 
     if existing_submission:
-        # If already submitted → show result
-        if existing_submission.is_submitted:
-            return redirect('exam_result', existing_submission.id)
-        # If not submitted → continue unfinished attempt
-        else:
-            return redirect('exam_detail', existing_submission.id)
 
-    # If no submission exists → create one
+        # 🔒 HARD LOCK after submission
+        if existing_submission.submitted_at:
+            return redirect("exam_result", existing_submission.id)
+
+        # resume if not submitted
+        return redirect("exam_detail", existing_submission.id)
+
     submission = Submission.objects.create(
         student=request.user,
-        exam=exam
+        exam=exam,
+        start_time=timezone.now()
     )
 
     ActivityLog.objects.create(
-    submission=submission,
-    event_type='STARTED'
+        submission=submission,
+        event_type="STARTED"
     )
 
-    return redirect('exam_detail', submission.id)
+    return redirect("exam_detail", submission.id)
 
 @login_required
 def exam_detail(request, submission_id):
 
-    if request.user.role != "STUDENT":
-        return redirect('exam_list')
+    if request.user.role.upper() != "STUDENT":
+        return redirect("exam_list")
 
     submission = get_object_or_404(Submission, id=submission_id)
+
+    if submission.student != request.user:
+        return redirect("exam_list")
+
     exam = submission.exam
 
-    now = timezone.now()
-
-    # Prevent early access
-    if exam.start_time and now < exam.start_time:
-        return redirect('exam_list')
-
-    # Prevent late access
-    if exam.end_time and now > exam.end_time:
-        return redirect('exam_list')
-
-    # Randomize questions
+    # Get questions
     questions = list(exam.questions.all())
+
+    # Shuffle questions
     random.shuffle(questions)
 
-    # Randomize options
+    # Shuffle options safely
     for question in questions:
         options = list(question.options.all())
         random.shuffle(options)
         question.shuffled_options = options
 
-    # Timer logic
-    end_time = submission.start_time + timedelta(minutes=exam.duration_minutes)
-    remaining_seconds = int((end_time - timezone.now()).total_seconds())
+    # Timer calculation (safe)
+    if submission.start_time:
+        end_time = submission.start_time + timedelta(minutes=exam.duration_minutes)
+        remaining_seconds = max(0, int((end_time - timezone.now()).total_seconds()))
+    else:
+        remaining_seconds = exam.duration_minutes * 60
 
+    # Auto submit if time expired
     if remaining_seconds <= 0:
         submission.calculate_score()
         submission.end_time = timezone.now()
         submission.save()
-
-        ActivityLog.objects.create(
-            submission=submission,
-            event_type='AUTO_SUBMIT_TIME'
-        )
-
-        return redirect('exam_result', submission.id)
+        return redirect("exam_result", submission.id)
 
     if request.method == "POST":
 
@@ -128,27 +121,22 @@ def exam_detail(request, submission_id):
             if selected_option_id:
                 selected_option = Option.objects.get(id=selected_option_id)
 
-                Answer.objects.create(
+                Answer.objects.update_or_create(
                     submission=submission,
                     question=question,
-                    selected_option=selected_option
+                    defaults={"selected_option": selected_option}
                 )
 
         submission.calculate_score()
         submission.end_time = timezone.now()
         submission.save()
 
-        ActivityLog.objects.create(
-            submission=submission,
-            event_type='SUBMITTED'
-        )
+        return redirect("exam_result", submission.id)
 
-        return redirect('exam_result', submission.id)
-
-    return render(request, 'core/exam_detail.html', {
-        'submission': submission,
-        'questions': questions,
-        'remaining_seconds': remaining_seconds
+    return render(request, "core/exam_detail.html", {
+        "submission": submission,
+        "questions": questions,
+        "remaining_seconds": remaining_seconds
     })
 
 @login_required
@@ -424,7 +412,21 @@ def my_results(request):
 @login_required
 def exam_instructions(request, exam_id):
 
+    if request.user.role != "STUDENT":
+        return redirect("exam_list")
+
     exam = get_object_or_404(Exam, id=exam_id)
+
+    if request.method == "POST":
+
+        # Create submission when exam starts
+        submission = Submission.objects.create(
+            student=request.user,
+            exam=exam,
+            start_time=timezone.now()
+        )
+
+        return redirect("exam_detail", submission.id)
 
     return render(request, "core/exam_instructions.html", {
         "exam": exam
@@ -433,15 +435,18 @@ def exam_instructions(request, exam_id):
 @login_required
 def student_dashboard(request):
 
-    if request.user.role != "STUDENT":
+    if request.user.role.upper() != "STUDENT":
         return redirect("exam_list")
 
-    completed_exams = Submission.objects.filter(
-        student=request.user,
-        is_submitted=True
-    ).count()
-
     total_exams = Exam.objects.count()
+
+    # Use submitted_at instead of end_time
+    completed_exam_ids = Submission.objects.filter(
+        student=request.user,
+        submitted_at__isnull=False
+    ).values_list("exam_id", flat=True).distinct()
+
+    completed_exams = len(completed_exam_ids)
 
     available_exams = total_exams - completed_exams
 
@@ -466,7 +471,19 @@ def export_results(request, exam_id):
         writer.writerow([
             s.student.username,
             s.total_score,
-            s.submitted_at
+            s.end_time
         ])
 
     return response
+
+@login_required
+def my_results(request):
+
+    submissions = Submission.objects.filter(
+        student=request.user,
+        submitted_at__isnull=False   # ✅ only completed
+    )
+
+    return render(request, "core/my_results.html", {
+        "submissions": submissions
+    })
