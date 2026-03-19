@@ -17,6 +17,8 @@ from django.shortcuts import redirect, render, get_object_or_404
 from .forms import ExamForm
 from .models import Exam, Question, Option
 from django.contrib.auth.views import LoginView
+from django.urls import reverse
+
 
 @login_required
 def exam_list(request):
@@ -501,14 +503,14 @@ class CustomLoginView(LoginView):
     template_name = 'core/login.html'
 
     def get_redirect_url(self):
-        return None  # 🚫 ignore ?next=
+        return None  # ignore ?next=
 
     def get_success_url(self):
         user = self.request.user
 
         if user.role == "INSTRUCTOR":
-            return '/instructor-dashboard/'
+            return reverse('instructor_dashboard')  # ✅ correct
         elif user.role == "STUDENT":
-            return '/student-dashboard/'
+            return reverse('student_dashboard')  # ✅ correct
 
-        return '/'
+        return reverse('landing')
