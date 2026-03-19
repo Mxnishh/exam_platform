@@ -500,12 +500,15 @@ def redirect_user(request):
 class CustomLoginView(LoginView):
     template_name = 'core/login.html'
 
+    def get_redirect_url(self):
+        return None  # 🚫 ignore ?next=
+
     def get_success_url(self):
         user = self.request.user
 
         if user.role == "INSTRUCTOR":
-            return '/instructor-dashboard/'  # adjust URL name/path
+            return '/instructor-dashboard/'
         elif user.role == "STUDENT":
             return '/student-dashboard/'
-        
+
         return '/'
