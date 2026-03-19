@@ -137,3 +137,20 @@ class Department(models.Model):
 
     def __str__(self):
         return self.name
+    
+class Subject(models.Model):
+    name = models.CharField(max_length=100)
+
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.CASCADE
+    )
+
+    instructor = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': 'INSTRUCTOR'}
+    )
+
+    def __str__(self):
+        return f"{self.name} ({self.department.name})"

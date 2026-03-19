@@ -8,6 +8,7 @@ from .models import Answer
 from .models import ActivityLog
 from django.utils.timezone import localtime
 from .models import Department
+from .models import Subject
 
 class CustomUserAdmin(UserAdmin):
     model = User
@@ -35,3 +36,4 @@ admin.site.register(Option)
 admin.site.register(Submission)
 admin.site.register(Answer)
 admin.site.register(Department)
+admin.site.register(Subject)
