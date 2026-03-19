@@ -487,3 +487,11 @@ def my_results(request):
     return render(request, "core/my_results.html", {
         "submissions": submissions
     })
+
+def redirect_user(request):
+    if request.user.role == "INSTRUCTOR":
+        return redirect("instructor_dashboard")
+    elif request.user.role == "STUDENT":
+        return redirect("student_dashboard")
+    else:
+        return redirect("login")

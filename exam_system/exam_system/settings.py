@@ -119,7 +119,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 AUTH_USER_MODEL = "core.User"
 
 LOGIN_URL = "/login/"
-LOGIN_REDIRECT_URL = "/home/"
+LOGIN_REDIRECT_URL = '/redirect/'
 LOGOUT_REDIRECT_URL = "/login/"
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True

@@ -21,4 +21,5 @@ urlpatterns = [
     path("exam/<int:exam_id>/instructions/", views.exam_instructions, name="exam_instructions"),
     path("student-dashboard/", views.student_dashboard, name="student_dashboard"),
     path("export-results/<int:exam_id>/", views.export_results, name="export_results"),
+    path('redirect/', views.redirect_user, name='redirect_user'),
 ]
