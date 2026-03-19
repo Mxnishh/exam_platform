@@ -125,3 +125,10 @@ LOGOUT_REDIRECT_URL = "/login/"
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 print("DATABASE:", DATABASES["default"])
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://exam-platform-kkbj.onrender.com"
+]
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
