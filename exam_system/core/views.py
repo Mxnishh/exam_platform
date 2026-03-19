@@ -16,6 +16,7 @@ from .decorators import instructor_required
 from django.shortcuts import redirect, render, get_object_or_404
 from .forms import ExamForm
 from .models import Exam, Question, Option
+from django.contrib.auth.views import LoginView
 
 @login_required
 def exam_list(request):
@@ -495,3 +496,16 @@ def redirect_user(request):
         return redirect("student_dashboard")
     else:
         return redirect("login")
+    
+class CustomLoginView(LoginView):
+    template_name = 'core/login.html'
+
+    def get_success_url(self):
+        user = self.request.user
+
+        if user.role == "INSTRUCTOR":
+            return '/instructor-dashboard/'  # adjust URL name/path
+        elif user.role == "STUDENT":
+            return '/student-dashboard/'
+        
+        return '/'
