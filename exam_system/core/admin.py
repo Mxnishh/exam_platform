@@ -13,11 +13,11 @@ class CustomUserAdmin(UserAdmin):
     model = User
 
     fieldsets = UserAdmin.fieldsets + (
-        ('Role Information', {'fields': ('role',)}),
+        ('Role Information', {'fields': ('role', 'department')}),
     )
 
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Role Information', {'fields': ('role',)}),
+        ('Role Information', {'fields': ('role', 'department')}),
     )
 
 @admin.register(ActivityLog)
