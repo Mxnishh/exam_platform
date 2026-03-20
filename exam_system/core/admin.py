@@ -1,15 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User
-from .models import Exam,Question
-from .models import Option
-from .models import Submission
-from .models import Answer
-from .models import ActivityLog
+from .models import User, Exam, Question, Option, Submission, Answer, ActivityLog, Department, Subject
 from django.utils.timezone import localtime
-from .models import Department
-from .models import Subject
 
+
+# ✅ USER ADMIN
 class CustomUserAdmin(UserAdmin):
     model = User
 
@@ -21,6 +16,24 @@ class CustomUserAdmin(UserAdmin):
         ('Role Information', {'fields': ('role', 'department')}),
     )
 
+
+# ✅ EXAM ADMIN (🔥 THIS FIXES YOUR ISSUE)
+@admin.register(Exam)
+class ExamAdmin(admin.ModelAdmin):
+    list_display = ('title', 'instructor', 'subject', 'duration_minutes')
+
+    fields = (
+        'title',
+        'description',
+        'instructor',
+        'subject',   # ✅ NOW IT WILL SHOW
+        'duration_minutes',
+        'start_time',
+        'end_time',
+    )
+
+
+# ✅ ACTIVITY LOG
 @admin.register(ActivityLog)
 class ActivityLogAdmin(admin.ModelAdmin):
     list_display = ('submission', 'event_type', 'formatted_timestamp')
@@ -29,9 +42,9 @@ class ActivityLogAdmin(admin.ModelAdmin):
         return localtime(obj.timestamp)
 
 
+# ✅ REGISTER OTHERS
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Question)
-admin.site.register(Exam)
 admin.site.register(Option)
 admin.site.register(Submission)
 admin.site.register(Answer)

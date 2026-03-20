@@ -21,6 +21,23 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} - {self.role}"
+    
+class Subject(models.Model):
+    name = models.CharField(max_length=100)
+
+    department = models.ForeignKey(
+        'Department',
+        on_delete=models.CASCADE
+    )
+
+    instructor = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role': 'INSTRUCTOR'}
+    )
+
+    def __str__(self):
+        return f"{self.name} ({self.department.name})"
 
 
 class Exam(models.Model):
@@ -34,9 +51,13 @@ class Exam(models.Model):
         limit_choices_to={'role': 'INSTRUCTOR'}
     )
 
+    subject = models.ForeignKey(   # ✅ ADD THIS
+        Subject,
+        on_delete=models.CASCADE
+    )
+
     duration_minutes = models.IntegerField()
 
-    # NEW FIELDS
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)
 
@@ -138,19 +159,3 @@ class Department(models.Model):
     def __str__(self):
         return self.name
     
-class Subject(models.Model):
-    name = models.CharField(max_length=100)
-
-    department = models.ForeignKey(
-        Department,
-        on_delete=models.CASCADE
-    )
-
-    instructor = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        limit_choices_to={'role': 'INSTRUCTOR'}
-    )
-
-    def __str__(self):
-        return f"{self.name} ({self.department.name})"
