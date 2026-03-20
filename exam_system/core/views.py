@@ -460,15 +460,20 @@ def student_dashboard(request):
     if request.user.role.upper() != "STUDENT":
         return redirect("exam_list")
 
-    total_exams = Exam.objects.count()
+    # 🎯 FILTERED EXAMS (IMPORTANT FIX)
+    exams = Exam.objects.filter(
+        subject__department=request.user.department
+    )
 
-    # Use submitted_at instead of end_time
+    total_exams = exams.count()
+
     completed_exam_ids = Submission.objects.filter(
         student=request.user,
         submitted_at__isnull=False
     ).values_list("exam_id", flat=True).distinct()
 
-    completed_exams = len(completed_exam_ids)
+    # Only count completed exams that belong to student's department
+    completed_exams = exams.filter(id__in=completed_exam_ids).count()
 
     available_exams = total_exams - completed_exams
 
