@@ -18,12 +18,27 @@ from .forms import ExamForm
 from .models import Exam, Question, Option
 from django.contrib.auth.views import LoginView
 from django.urls import reverse
-
+from .models import Subject
 
 @login_required
 def exam_list(request):
 
-    exams = Exam.objects.all()
+    user = request.user
+
+    # 🎯 FILTER BASED ON ROLE
+    if user.role == "STUDENT":
+        exams = Exam.objects.filter(
+            subject__department=user.department
+        )
+
+    elif user.role == "INSTRUCTOR":
+        exams = Exam.objects.filter(
+            instructor=user
+        )
+
+    else:
+        exams = Exam.objects.all()
+
     exam_data = []
 
     for exam in exams:
@@ -257,10 +272,14 @@ def create_exam(request):
     else:
         form = ExamForm()
 
+        # 🎯 LIMIT SUBJECTS TO INSTRUCTOR
+        form.fields['subject'].queryset = Subject.objects.filter(
+            instructor=request.user
+        )
+
     return render(request, "core/create_exam.html", {
         "form": form
     })
-
 @login_required
 @instructor_required
 def add_question(request, exam_id):
