@@ -10,6 +10,7 @@ class ExamForm(forms.ModelForm):
             "title",
             "description",
             "duration_minutes",
+            "subject",  
             "start_time",
             "end_time"
         ]
