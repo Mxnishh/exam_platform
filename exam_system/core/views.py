@@ -29,21 +29,21 @@ def exam_list(request):
     if user.role == "STUDENT":
         exams = Exam.objects.filter(
             subject__department=user.department
-        )
+        ).select_related("subject")
 
     elif user.role == "INSTRUCTOR":
         exams = Exam.objects.filter(
             instructor=user
-        )
+        ).select_related("subject")
 
     else:
-        exams = Exam.objects.all()
+        exams = Exam.objects.all().select_related("subject")
 
     exam_data = []
 
     for exam in exams:
         submission = Submission.objects.filter(
-            student=request.user,
+            student=user,
             exam=exam
         ).first()
 

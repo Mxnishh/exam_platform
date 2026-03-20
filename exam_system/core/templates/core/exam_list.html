@@ -19,6 +19,11 @@
 {{ data.exam.description }}
 </p>
 
+<!-- 🔥 SUBJECT (highlighted nicely) -->
+<p class="text-muted mb-1">
+📘 <strong>{{ data.exam.subject.name }}</strong>
+</p>
+
 <p>
 <strong>Duration:</strong> {{ data.exam.duration_minutes }} mins
 </p>
@@ -32,13 +37,12 @@
 
         <span class="badge bg-success mb-3">✔ Completed</span>
 
-        <a href="{% url 'exam_result' data.submission.id %}" 
+        <a href="{% url 'exam_result' data.submission.id %}"
            class="btn btn-success w-100 mb-2">
             View Result
         </a>
 
         <button class="btn btn-outline-secondary w-100" disabled>
-                <title="You can only attempt this exam once"></title> 
             Attempt Locked
         </button>
 
@@ -46,7 +50,7 @@
 
         <span class="badge bg-warning text-dark mb-3">⏳ In Progress</span>
 
-        <a href="{% url 'exam_detail' data.submission.id %}" 
+        <a href="{% url 'exam_detail' data.submission.id %}"
            class="btn btn-warning w-100">
             Resume Exam
         </a>
@@ -57,7 +61,7 @@
 
     <span class="badge bg-primary mb-3">🟢 Available</span>
 
-    <a href="{% url 'exam_instructions' data.exam.id %}" 
+    <a href="{% url 'exam_instructions' data.exam.id %}"
        class="btn btn-primary w-100">
         Start Exam
     </a>
