@@ -19,19 +19,21 @@ from .models import Exam, Question, Option
 from django.contrib.auth.views import LoginView
 from django.urls import reverse
 from .models import Subject
+from django.utils import timezone
 
 @login_required
 def exam_list(request):
 
     user = request.user
+    now = timezone.now()
 
     # 🎯 FILTER BASED ON ROLE
-    if user.role == "STUDENT":
+    if user.role.upper() == "STUDENT":
         exams = Exam.objects.filter(
             subject__department=user.department
         ).select_related("subject")
 
-    elif user.role == "INSTRUCTOR":
+    elif user.role.upper() == "INSTRUCTOR":
         exams = Exam.objects.filter(
             instructor=user
         ).select_related("subject")
@@ -42,19 +44,33 @@ def exam_list(request):
     exam_data = []
 
     for exam in exams:
+
         submission = Submission.objects.filter(
             student=user,
             exam=exam
         ).first()
 
+        # 🧠 Determine exam status
+        if exam.start_time and exam.end_time:
+            if now < exam.start_time:
+                status = "upcoming"
+            elif now > exam.end_time:
+                status = "expired"
+            else:
+                status = "active"
+        else:
+            status = "active"
+
         exam_data.append({
             "exam": exam,
-            "submission": submission
+            "submission": submission,
+            "status": status
         })
 
     return render(request, "core/exam_list.html", {
         "exam_data": exam_data
     })
+
 
 @login_required
 def start_exam(request, exam_id):
@@ -63,6 +79,13 @@ def start_exam(request, exam_id):
         return redirect("exam_list")
 
     exam = get_object_or_404(Exam, id=exam_id)
+
+    now = timezone.now()
+
+    # 🔒 TIME LOCK (prevents early/late access)
+    if exam.start_time and exam.end_time:
+        if not (exam.start_time <= now <= exam.end_time):
+            return redirect("exam_list")
 
     existing_submission = Submission.objects.filter(
         student=request.user,
