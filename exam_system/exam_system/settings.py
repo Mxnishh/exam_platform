@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 import dj_database_url
-
+import urllib.parse as urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -71,11 +71,20 @@ WSGI_APPLICATION = "exam_system.wsgi.application"
 
 # DATABASE
 
+url = urlparse.urlparse(os.environ.get("DATABASE_URL"))
+
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR}/db.sqlite3",
-        conn_max_age=600,
-    )
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": url.path[1:],  # remove leading /
+        "USER": url.username,
+        "PASSWORD": url.password,
+        "HOST": url.hostname,
+        "PORT": url.port,
+        "OPTIONS": {
+            "sslmode": "require",  # ✅ important for Supabase
+        },
+    }
 }
 
 # PASSWORD VALIDATION
