@@ -23,7 +23,14 @@
 📘 <strong>{{ data.exam.subject.name }}</strong>
 </p>
 
-<p><strong>Duration:</strong> {{ data.exam.duration_minutes }} mins</p>
+<p>
+<strong>Availability:</strong><br>
+{{ data.exam.start_time }} → {{ data.exam.end_time }}
+</p>
+
+<p>
+<strong>Exam Duration:</strong> {{ data.exam.duration_minutes }} mins
+</p>
 
 <p><strong>Start:</strong> {{ data.exam.start_time }}</p>
 <p><strong>End:</strong> {{ data.exam.end_time }}</p>
