@@ -17,7 +17,7 @@ class CustomUserAdmin(UserAdmin):
     )
 
 
-# ✅ EXAM ADMIN (🔥 THIS FIXES YOUR ISSUE)
+# ✅ EXAM ADMIN 
 @admin.register(Exam)
 class ExamAdmin(admin.ModelAdmin):
     list_display = ('title', 'instructor', 'subject', 'duration_minutes')

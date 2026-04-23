@@ -28,6 +28,17 @@
 <strong>Duration:</strong> {{ data.exam.duration_minutes }} mins
 </p>
 
+<p><strong>Start:</strong> {{ data.exam.start_time }}</p>
+<p><strong>End:</strong> {{ data.exam.end_time }}</p>
+
+{% if data.status == "upcoming" %}
+    <span class="badge bg-warning text-dark mb-2">⏳ Upcoming</span>
+{% elif data.status == "expired" %}
+    <span class="badge bg-danger mb-2">❌ Expired</span>
+{% else %}
+    <span class="badge bg-success mb-2">🟢 Active</span>
+{% endif %}
+
 <!-- STATUS + BUTTON LOGIC -->
 <div class="mt-auto">
 
@@ -59,12 +70,26 @@
 
 {% else %}
 
-    <span class="badge bg-primary mb-3">🟢 Available</span>
+   {% if data.status == "active" %}
 
     <a href="{% url 'exam_instructions' data.exam.id %}"
        class="btn btn-primary w-100">
         Start Exam
     </a>
+
+{% elif data.status == "upcoming" %}
+
+    <button class="btn btn-secondary w-100" disabled>
+        Not Started
+    </button>
+
+{% else %}
+
+    <button class="btn btn-outline-danger w-100" disabled>
+        Expired
+    </button>
+
+    {% endif %}
 
 {% endif %}
 
