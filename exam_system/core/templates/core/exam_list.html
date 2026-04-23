@@ -19,27 +19,16 @@
 {{ data.exam.description }}
 </p>
 
-<!-- 🔥 SUBJECT (highlighted nicely) -->
 <p class="text-muted mb-1">
 📘 <strong>{{ data.exam.subject.name }}</strong>
 </p>
 
-<p>
-<strong>Duration:</strong> {{ data.exam.duration_minutes }} mins
-</p>
+<p><strong>Duration:</strong> {{ data.exam.duration_minutes }} mins</p>
 
 <p><strong>Start:</strong> {{ data.exam.start_time }}</p>
 <p><strong>End:</strong> {{ data.exam.end_time }}</p>
 
-{% if data.status == "upcoming" %}
-    <span class="badge bg-warning text-dark mb-2">⏳ Upcoming</span>
-{% elif data.status == "expired" %}
-    <span class="badge bg-danger mb-2">❌ Expired</span>
-{% else %}
-    <span class="badge bg-success mb-2">🟢 Active</span>
-{% endif %}
-
-<!-- STATUS + BUTTON LOGIC -->
+<!-- 🔥 STATUS + ACTION LOGIC -->
 <div class="mt-auto">
 
 {% if data.submission %}
@@ -70,24 +59,30 @@
 
 {% else %}
 
-   {% if data.status == "active" %}
+    {% if data.status == "active" %}
 
-    <a href="{% url 'exam_instructions' data.exam.id %}"
-       class="btn btn-primary w-100">
-        Start Exam
-    </a>
+        <span class="badge bg-success mb-3">🟢 Active</span>
 
-{% elif data.status == "upcoming" %}
+        <a href="{% url 'exam_instructions' data.exam.id %}"
+           class="btn btn-primary w-100">
+            Start Exam
+        </a>
 
-    <button class="btn btn-secondary w-100" disabled>
-        Not Started
-    </button>
+    {% elif data.status == "upcoming" %}
 
-{% else %}
+        <span class="badge bg-warning text-dark mb-3">⏳ Upcoming</span>
 
-    <button class="btn btn-outline-danger w-100" disabled>
-        Expired
-    </button>
+        <button class="btn btn-secondary w-100" disabled>
+            Not Started
+        </button>
+
+    {% else %}
+
+        <span class="badge bg-danger mb-3">❌ Expired</span>
+
+        <button class="btn btn-outline-danger w-100" disabled>
+            Expired
+        </button>
 
     {% endif %}
 
