@@ -102,6 +102,7 @@ class Submission(models.Model):
     )
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
     start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(null=True, blank=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
     total_score = models.IntegerField(default=0)
     is_submitted = models.BooleanField(default=False)
