@@ -1,28 +1,34 @@
-from django.http import HttpResponse, HttpResponseForbidden
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
+import random
+from urllib import request
+import csv
+from django.http import HttpResponse
+from django.http import HttpResponseForbidden
+from django.shortcuts import render
+from .models import Exam
+from django.shortcuts import get_object_or_404, redirect
+from .models import Exam, Submission
 from django.utils import timezone
+from .models import Answer, Option
+from django.contrib.auth.decorators import login_required
+from datetime import timedelta
+from .models import ActivityLog
 from django.db.models import Avg, Max, Min, Count
+from .decorators import instructor_required
+from django.shortcuts import redirect, render, get_object_or_404
+from .forms import ExamForm
+from .models import Exam, Question, Option
 from django.contrib.auth.views import LoginView
 from django.urls import reverse
-from datetime import timedelta
-import random
-import csv
+from .models import Subject
+from django.utils import timezone
 
-from .models import (
-    Exam, Submission, Answer, Option,
-    ActivityLog, Question, Subject
-)
-from .forms import ExamForm
-from .decorators import instructor_required
-
-
-# ===================== EXAM LIST =====================
 @login_required
 def exam_list(request):
+
     user = request.user
     now = timezone.now()
 
+    # 🎯 FILTER BASED ON ROLE
     if user.role.upper() == "STUDENT":
         exams = Exam.objects.filter(
             subject__department=user.department
@@ -39,11 +45,13 @@ def exam_list(request):
     exam_data = []
 
     for exam in exams:
+
         submission = Submission.objects.filter(
             student=user,
             exam=exam
         ).first()
 
+        # 🧠 Determine exam status
         if exam.start_time and exam.end_time:
             if now < exam.start_time:
                 status = "upcoming"
@@ -60,10 +68,11 @@ def exam_list(request):
             "status": status
         })
 
-    return render(request, "core/exam_list.html", {"exam_data": exam_data})
+    return render(request, "core/exam_list.html", {
+        "exam_data": exam_data
+    })
 
 
-# ===================== START EXAM =====================
 @login_required
 def start_exam(request, exam_id):
 
@@ -71,26 +80,32 @@ def start_exam(request, exam_id):
         return HttpResponseForbidden("Only students can start exams")
 
     exam = get_object_or_404(Exam, id=exam_id)
+
     now = timezone.now()
 
+    # 🔒 TIME LOCK (prevents early/late access)
     if exam.start_time and exam.end_time:
         if not (exam.start_time <= now <= exam.end_time):
-            return HttpResponseForbidden("Exam not active")
-
+             return HttpResponseForbidden("Exam not active")
+        
     existing_submission = Submission.objects.filter(
         student=request.user,
         exam=exam
     ).first()
 
     if existing_submission:
+
+        # 🔒 HARD LOCK after submission
         if existing_submission.submitted_at:
             return redirect("exam_result", existing_submission.id)
+
+        # resume if not submitted
         return redirect("exam_detail", existing_submission.id)
 
     submission = Submission.objects.create(
         student=request.user,
         exam=exam,
-        start_time=now
+        start_time=timezone.now()
     )
 
     ActivityLog.objects.create(
@@ -100,42 +115,50 @@ def start_exam(request, exam_id):
 
     return redirect("exam_detail", submission.id)
 
-
-# ===================== EXAM DETAIL =====================
 @login_required
 def exam_detail(request, submission_id):
 
+    # 🔒 Only students allowed
     if request.user.role.upper() != "STUDENT":
-        return HttpResponseForbidden("Only students allowed")
+        return HttpResponseForbidden("Only students can access exams")
 
     submission = get_object_or_404(Submission, id=submission_id)
 
+    # 🔒 Ownership check (MOST IMPORTANT)
     if submission.student != request.user:
-        return HttpResponseForbidden("Not allowed")
+        return HttpResponseForbidden("You are not allowed to access this exam")
 
     exam = submission.exam
 
+    # 🔒 Prevent reopening submitted exam
     if submission.end_time:
         return HttpResponseForbidden("Exam already submitted")
 
+    # 🔒 Time window check (IMPORTANT)
     now = timezone.now()
     if not (exam.start_time <= now <= exam.end_time):
         return HttpResponseForbidden("Exam not active")
 
+    # Get questions
     questions = list(exam.questions.all())
+
+    # Shuffle questions
     random.shuffle(questions)
 
-    for q in questions:
-        opts = list(q.options.all())
-        random.shuffle(opts)
-        q.shuffled_options = opts
+    # Shuffle options safely
+    for question in questions:
+        options = list(question.options.all())
+        random.shuffle(options)
+        question.shuffled_options = options
 
+    # Timer calculation
     if submission.start_time:
         end_time = submission.start_time + timedelta(minutes=exam.duration_minutes)
         remaining_seconds = max(0, int((end_time - now).total_seconds()))
     else:
         remaining_seconds = exam.duration_minutes * 60
 
+    # 🔒 Auto-submit if time expired
     if remaining_seconds <= 0:
         submission.calculate_score()
         submission.end_time = now
@@ -143,15 +166,17 @@ def exam_detail(request, submission_id):
         return redirect("exam_result", submission.id)
 
     if request.method == "POST":
-        for q in questions:
-            opt_id = request.POST.get(f"question_{q.id}")
-            if opt_id:
-                opt = get_object_or_404(Option, id=opt_id)
+
+        for question in questions:
+            selected_option_id = request.POST.get(f"question_{question.id}")
+
+            if selected_option_id:
+                selected_option = get_object_or_404(Option, id=selected_option_id)
 
                 Answer.objects.update_or_create(
                     submission=submission,
-                    question=q,
-                    defaults={"selected_option": opt}
+                    question=question,
+                    defaults={"selected_option": selected_option}
                 )
 
         submission.calculate_score()
@@ -166,21 +191,22 @@ def exam_detail(request, submission_id):
         "remaining_seconds": remaining_seconds
     })
 
-
-# ===================== EXAM RESULT =====================
 @login_required
 def exam_result(request, submission_id):
 
     submission = get_object_or_404(Submission, id=submission_id)
 
+    # 🔒 STUDENT: can only see their own result
     if request.user.role.upper() == "STUDENT":
         if submission.student != request.user:
-            return HttpResponseForbidden("Not allowed")
+            return HttpResponseForbidden("You are not allowed to view this result")
 
+    # 🔒 INSTRUCTOR: only results of their exams
     elif request.user.role.upper() == "INSTRUCTOR":
         if submission.exam.instructor != request.user:
-            return HttpResponseForbidden("Not allowed")
+            return HttpResponseForbidden("You are not allowed to view this result")
 
+    # 🔒 (Optional but strong) Admin fallback
     else:
         return HttpResponseForbidden("Access denied")
 
@@ -188,6 +214,7 @@ def exam_result(request, submission_id):
     total_marks = sum(q.marks for q in questions)
     score = submission.total_score
 
+    # ✅ Safe percentage calculation
     percentage = 0
     if total_marks > 0:
         percentage = round((score / total_marks) * 100, 2)
@@ -198,45 +225,26 @@ def exam_result(request, submission_id):
         'percentage': percentage
     })
 
-
-# ===================== STUDENT DASHBOARD =====================
-@login_required
-def student_dashboard(request):
-
-    if request.user.role.upper() != "STUDENT":
-        return HttpResponseForbidden("Only students allowed")
-
-    exams = Exam.objects.filter(
-        subject__department=request.user.department
-    )
-
-    total_exams = exams.count()
-
-    completed_exam_ids = Submission.objects.filter(
-        student=request.user,
-        end_time__isnull=False
-    ).values_list("exam_id", flat=True).distinct()
-
-    completed_exams = exams.filter(id__in=completed_exam_ids).count()
-    available_exams = total_exams - completed_exams
-
-    return render(request, "core/student_dashboard.html", {
-        "available_exams": available_exams,
-        "completed_exams": completed_exams,
-        "total_exams": total_exams
-    })
-
-
-# ===================== INSTRUCTOR DASHBOARD =====================
 @login_required
 @instructor_required
 def instructor_dashboard(request):
 
+    print("USER:", request.user.username)
+    print("ROLE:", request.user.role)
+    print("AUTH:", request.user.is_authenticated)
+
     exams = Exam.objects.filter(instructor=request.user)
+
     exam_data = []
 
     for exam in exams:
         submissions = Submission.objects.filter(exam=exam)
+
+        has_submissions = submissions.exists()
+
+        status = "Draft"
+        if has_submissions:
+            status = "Attempted"
 
         stats = submissions.aggregate(
             total_attempts=Count("id"),
@@ -245,11 +253,14 @@ def instructor_dashboard(request):
             lowest_score=Min("total_score"),
         )
 
+        # NEW: collect score list
         scores = list(submissions.values_list("total_score", flat=True))
 
         exam_data.append({
             "exam": exam,
             "stats": stats,
+            "has_submissions": has_submissions,
+            "status": status,
             "scores": scores
         })
 
@@ -258,7 +269,30 @@ def instructor_dashboard(request):
     })
 
 
-# ===================== CREATE EXAM =====================
+from django.shortcuts import redirect
+
+def home_redirect(request):
+
+    if not request.user.is_authenticated:
+        return redirect("login")
+
+    # Django superuser (admin panel)
+    if request.user.is_superuser:
+        return redirect("/admin/")
+
+    role = request.user.role.upper()
+
+    if role == "STUDENT":
+        return redirect("student_dashboard")
+
+    elif role == "INSTRUCTOR":
+        return redirect("instructor_dashboard")
+
+    return redirect("exam_list")
+
+def landing_page(request):
+    return render(request, "core/landing.html")
+
 @login_required
 @instructor_required
 def create_exam(request):
@@ -275,47 +309,54 @@ def create_exam(request):
 
     else:
         form = ExamForm()
+
+        # 🎯 LIMIT SUBJECTS TO INSTRUCTOR
         form.fields['subject'].queryset = Subject.objects.filter(
             instructor=request.user
         )
 
-    return render(request, "core/create_exam.html", {"form": form})
-
-
-# ===================== ADD QUESTION =====================
+    return render(request, "core/create_exam.html", {
+        "form": form
+    })
 @login_required
 @instructor_required
 def add_question(request, exam_id):
 
     exam = get_object_or_404(Exam, id=exam_id)
 
+    # 🔒 Ownership check (IMPORTANT)
     if exam.instructor != request.user:
         return HttpResponseForbidden("Not allowed")
 
-    if Submission.objects.filter(exam=exam).exists():
-        return HttpResponseForbidden("Cannot modify after attempts")
+    # 🔒 Prevent adding questions after attempts
+    submissions = Submission.objects.filter(exam=exam)
+
+    if submissions.exists():
+        return HttpResponseForbidden("Cannot modify exam after attempts")
 
     if request.method == "POST":
+        question_text = request.POST.get("question")
+
+        option1 = request.POST.get("option1")
+        option2 = request.POST.get("option2")
+        option3 = request.POST.get("option3")
+        option4 = request.POST.get("option4")
+
+        correct_option = request.POST.get("correct_option")
+
         question = Question.objects.create(
             exam=exam,
-            text=request.POST.get("question")
+            text=question_text
         )
 
-        options = [
-            request.POST.get("option1"),
-            request.POST.get("option2"),
-            request.POST.get("option3"),
-            request.POST.get("option4"),
-        ]
+        Option.objects.create(question=question, text=option1, is_correct=(correct_option=="1"))
+        Option.objects.create(question=question, text=option2, is_correct=(correct_option=="2"))
+        Option.objects.create(question=question, text=option3, is_correct=(correct_option=="3"))
+        Option.objects.create(question=question, text=option4, is_correct=(correct_option=="4"))
 
-        correct = request.POST.get("correct_option")
-
-        for i, opt in enumerate(options, start=1):
-            Option.objects.create(
-                question=question,
-                text=opt,
-                is_correct=(str(i) == correct)
-            )
+        if exam.questions.exists():
+            exam.status = "Published"
+            exam.save()
 
         return redirect("add_question", exam_id=exam.id)
 
@@ -326,14 +367,200 @@ def add_question(request, exam_id):
         "questions": questions
     })
 
+@login_required
+@instructor_required
+def exam_submissions(request, exam_id):
 
-# ===================== EXPORT =====================
+    exam = get_object_or_404(Exam, id=exam_id)
+
+    # 🔒 Ownership check
+    if exam.instructor != request.user:
+        return HttpResponseForbidden("Not allowed")
+
+    submissions = Submission.objects.filter(exam=exam)
+
+    return render(request, "core/exam_submissions.html", {
+        "exam": exam,
+        "submissions": submissions
+    })
+
+@login_required
+@instructor_required
+def reset_attempt(request, submission_id):
+
+    submission = get_object_or_404(Submission, id=submission_id)
+
+    # 🔒 Ownership check
+    if submission.exam.instructor != request.user:
+        return HttpResponseForbidden("Not allowed")
+
+    submission.delete()
+
+    return redirect("exam_submissions", exam_id=submission.exam.id)
+
+@login_required
+@instructor_required
+def delete_exam(request, exam_id):
+
+    exam = get_object_or_404(Exam, id=exam_id)
+
+    # 🔒 Ownership check
+    if exam.instructor != request.user:
+        return HttpResponseForbidden("Not allowed")
+
+    exam.delete()
+
+    return redirect("instructor_dashboard")
+
+@login_required
+@instructor_required
+def edit_exam(request, exam_id):
+
+    exam = get_object_or_404(Exam, id=exam_id)
+
+    if exam.instructor != request.user:
+        return HttpResponseForbidden("Not allowed")
+
+    if request.method == "POST":
+        form = ExamForm(request.POST, instance=exam)
+        if form.is_valid():
+            form.save()
+            return redirect("instructor_dashboard")
+    else:
+        form = ExamForm(instance=exam)
+
+    return render(request, "core/edit_exam.html", {
+        "form": form,
+        "exam": exam
+    })
+
+@login_required
+@instructor_required
+def edit_question(request, question_id):
+
+    question = get_object_or_404(Question, id=question_id)
+
+    if question.exam.instructor != request.user:
+        return HttpResponseForbidden("Not allowed")
+
+    if request.method == "POST":
+        question.text = request.POST.get("question")
+        question.save()
+
+        return redirect("add_question", exam_id=question.exam.id)
+
+    return render(request, "core/edit_question.html", {
+        "question": question
+    })
+
+@login_required
+@instructor_required
+def delete_question(request, question_id):
+
+    question = get_object_or_404(Question, id=question_id)
+
+    if question.exam.instructor != request.user:
+        return HttpResponseForbidden("Not allowed")
+
+    exam_id = question.exam.id
+    question.delete()
+
+    return redirect("add_question", exam_id=exam_id)
+
+@login_required
+def my_results(request):
+
+    if request.user.role != "STUDENT":
+        return HttpResponseForbidden("Only students allowed")
+
+    submissions = Submission.objects.filter(student=request.user)
+
+    return render(request, "core/my_results.html", {
+        "submissions": submissions
+    })
+
+@login_required
+def exam_instructions(request, exam_id):
+
+    # 🔒 Only students allowed
+    if request.user.role.upper() != "STUDENT":
+        return HttpResponseForbidden("Only students can access exams")
+
+    exam = get_object_or_404(Exam, id=exam_id)
+
+    # 🔒 Department check (IMPORTANT)
+    if exam.subject.department != request.user.department:
+        return HttpResponseForbidden("You are not allowed to access this exam")
+
+    # 🔒 Time window check
+    now = timezone.now()
+    if not (exam.start_time <= now <= exam.end_time):
+        return HttpResponseForbidden("Exam not active")
+
+    # 🔒 Prevent multiple submissions
+    existing_submission = Submission.objects.filter(
+        student=request.user,
+        exam=exam
+    ).first()
+
+    if existing_submission:
+        # If already submitted → go to result
+        if existing_submission.end_time:
+            return redirect("exam_result", existing_submission.id)
+        # If in progress → resume
+        else:
+            return redirect("exam_detail", existing_submission.id)
+
+    if request.method == "POST":
+
+        submission = Submission.objects.create(
+            student=request.user,
+            exam=exam,
+            start_time=now
+        )
+
+        return redirect("exam_detail", submission.id)
+
+    return render(request, "core/exam_instructions.html", {
+        "exam": exam
+    })
+
+@login_required
+def student_dashboard(request):
+
+    if request.user.role.upper() != "STUDENT":
+        return HttpResponseForbidden("Only students allowed")
+    
+    # 🎯 FILTERED EXAMS (IMPORTANT FIX)
+    exams = Exam.objects.filter(
+        subject__department=request.user.department
+    )
+
+    total_exams = exams.count()
+
+    completed_exam_ids = Submission.objects.filter(
+        student=request.user,
+        submitted_at__isnull=False
+    ).values_list("exam_id", flat=True).distinct()
+
+    # Only count completed exams that belong to student's department
+    completed_exams = exams.filter(id__in=completed_exam_ids).count()
+
+    available_exams = total_exams - completed_exams
+
+    return render(request, "core/student_dashboard.html", {
+        "available_exams": available_exams,
+        "completed_exams": completed_exams,
+        "total_exams": total_exams
+    })
+
 @login_required
 @instructor_required
 def export_results(request, exam_id):
 
     exam = get_object_or_404(Exam, id=exam_id)
 
+    # 🔒 Ownership check
     if exam.instructor != request.user:
         return HttpResponseForbidden("Not allowed")
 
@@ -346,54 +573,46 @@ def export_results(request, exam_id):
     writer.writerow(["Student", "Score", "Submitted At"])
 
     for s in submissions:
-        writer.writerow([s.student.username, s.total_score, s.end_time])
+        writer.writerow([
+            s.student.username,
+            s.total_score,
+            s.end_time
+        ])
 
     return response
 
+@login_required
+def my_results(request):
 
-# ===================== REDIRECTS =====================
-def home_redirect(request):
-    if not request.user.is_authenticated:
-        return redirect("login")
+    submissions = Submission.objects.filter(
+        student=request.user,
+        submitted_at__isnull=False   # ✅ only completed
+    )
 
-    if request.user.is_superuser:
-        return redirect("/admin/")
-
-    if request.user.role == "STUDENT":
-        return redirect("student_dashboard")
-
-    elif request.user.role == "INSTRUCTOR":
-        return redirect("instructor_dashboard")
-
-    return redirect("exam_list")
-
-
-def landing_page(request):
-    return render(request, "core/landing.html")
-
+    return render(request, "core/my_results.html", {
+        "submissions": submissions
+    })
 
 def redirect_user(request):
     if request.user.role == "INSTRUCTOR":
         return redirect("instructor_dashboard")
     elif request.user.role == "STUDENT":
         return redirect("student_dashboard")
-    return redirect("login")
-
-
-# ===================== LOGIN =====================
+    else:
+        return redirect("login")
+    
 class CustomLoginView(LoginView):
     template_name = 'core/login.html'
 
     def get_redirect_url(self):
-        return None
+        return None  # ignore ?next=
 
     def get_success_url(self):
         user = self.request.user
 
         if user.role == "INSTRUCTOR":
-            return reverse('instructor_dashboard')
-
+            return reverse('instructor_dashboard')  # ✅ correct
         elif user.role == "STUDENT":
-            return reverse('student_dashboard')
+            return reverse('student_dashboard')  # ✅ correct
 
         return reverse('landing')
